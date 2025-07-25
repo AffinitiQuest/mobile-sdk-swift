@@ -17,13 +17,16 @@ public class MDocReader: MDocBLEDelegate, MDocReaderBLECentralDelegate {
     public init?(
         callback: BLEReaderSessionStateDelegate,
         uri: String,
+        docType: String,
+        format: String,
         requestedItems: [String: [String: Bool]],
         trustAnchorRegistry: [String]?
     ) {
         self.callback = callback
         do {
             let sessionData = try SpruceIDMobileSdkRs.establishSession(uri: uri,
-                                                                       docType: "int.icao.epl.1",
+                                                                       docType: docType,
+                                                                       format: format,
                                                                        requestedItems: requestedItems,
                                                                        trustAnchorRegistry: trustAnchorRegistry)
             self.sessionManager = sessionData.state
@@ -58,17 +61,19 @@ extension MDocReader: MDocReaderBLEPeripheralDelegate {
             //self.callback.update(state: .error(BleReaderSessionError(readerBleError: error)))
             self.cancel()
         case .message(let data):
-            do {
-                let stringData = String(data: data, encoding: .utf8)
-                let str = String(decoding: data, as: UTF8.self)
-                let data = Data(bytes: data)
-                let base64 = data.base64EncodedUrlSafe
-                let responseData = try SpruceIDMobileSdkRs.handleResponse(state: self.sessionManager, response: data)
-                self.sessionManager = responseData.state
-                self.callback.update(state: BLEReaderSessionState.success(BLEReaderSessionStateSuccess.mdlReaderResponseData(responseData)))
-            } catch {
-                self.callback.update(state: .error(.generic("\(error)")))
-                self.cancel()
+            Task {
+                do {
+                    let stringData = String(data: data, encoding: .utf8)
+                    let str = String(decoding: data, as: UTF8.self)
+                    let data = Data(bytes: data)
+                    let base64 = data.base64EncodedUrlSafe
+                    let responseData = try await SpruceIDMobileSdkRs.handleResponse(state: self.sessionManager, response: data)
+                    self.sessionManager = responseData.state
+                    self.callback.update(state: BLEReaderSessionState.success(BLEReaderSessionStateSuccess.mdlReaderResponseData(responseData)))
+                } catch {
+                    self.callback.update(state: .error(.generic("\(error)")))
+                    self.cancel()
+                }
             }
         case .downloadProgress(let index): break
             //self.callback.update(state: .downloadProgress(index))
