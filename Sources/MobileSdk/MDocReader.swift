@@ -13,6 +13,8 @@ public class MDocReader: MDocBLEDelegate, MDocReaderBLECentralDelegate {
     var sessionManager: MdlSessionManager
     var bleManager: MDocReaderBLECentral!
     var callback: BLEReaderSessionStateDelegate
+    var trustedDids: [String: String] = [:]
+    var shouldResolveDids = true
 
     public init?(
         callback: BLEReaderSessionStateDelegate,
@@ -20,10 +22,14 @@ public class MDocReader: MDocBLEDelegate, MDocReaderBLECentralDelegate {
         docType: String,
         format: String,
         requestedItems: [String: [String: Bool]],
-        trustAnchorRegistry: [String]?
+        trustAnchorRegistry: [String]?,
+        trustedDids: [String: String],
+        shouldResolveDids: Bool
     ) {
         self.callback = callback
         do {
+            self.trustedDids = trustedDids
+            self.shouldResolveDids = shouldResolveDids
             let sessionData = try SpruceIDMobileSdkRs.establishSession(uri: uri,
                                                                        docType: docType,
                                                                        format: format,
@@ -67,7 +73,7 @@ extension MDocReader: MDocReaderBLEPeripheralDelegate {
                     let str = String(decoding: data, as: UTF8.self)
                     let data = Data(bytes: data)
                     let base64 = data.base64EncodedUrlSafe
-                    let responseData = try await SpruceIDMobileSdkRs.handleResponse(state: self.sessionManager, response: data)
+                    let responseData = try await SpruceIDMobileSdkRs.handleResponse(state: self.sessionManager, response: data, dids: trustedDids, resolveDids: shouldResolveDids)
                     self.sessionManager = responseData.state
                     self.callback.update(state: BLEReaderSessionState.success(BLEReaderSessionStateSuccess.mdlReaderResponseData(responseData)))
                 } catch {
