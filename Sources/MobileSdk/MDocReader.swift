@@ -74,8 +74,10 @@ extension MDocReader: MDocReaderBLEPeripheralDelegate {
                     let data = Data(bytes: data)
                     let base64 = data.base64EncodedUrlSafe
                     let responseData = try await SpruceIDMobileSdkRs.handleResponse(state: self.sessionManager, response: data, dids: trustedDids, resolveDids: shouldResolveDids)
-                    self.sessionManager = responseData.state
-                    self.callback.update(state: BLEReaderSessionState.success(BLEReaderSessionStateSuccess.mdlReaderResponseData(responseData)))
+                    if responseData.responses.count > 0 {
+                        self.sessionManager = responseData.responses[0].state
+                        self.callback.update(state: BLEReaderSessionState.success(BLEReaderSessionStateSuccess.mdlReaderResponseData(responseData.responses)))
+                    }
                 } catch {
                     self.callback.update(state: .error(.generic("\(error)")))
                     self.cancel()
@@ -109,7 +111,7 @@ public enum BLEReaderSessionState {
 
 public enum BLEReaderSessionStateSuccess {
     case item([String: [String: MDocItem]])
-    case mdlReaderResponseData(MdlReaderResponseData)
+    case mdlReaderResponseData([MdlReaderResponseData])
 }
 
 public enum BleReaderSessionError {
