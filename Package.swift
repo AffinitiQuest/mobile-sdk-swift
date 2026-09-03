@@ -15,7 +15,7 @@ let package = Package(
     ],
     dependencies: [
         //.package(path: "../mobile-sdk-rs"),
-        .package(url: "https://github.com/affinitiquest/mobile-sdk-rs", from: "1.0.13"),
+        .package(url: "https://github.com/affinitiquest/mobile-sdk-rs", from: "1.0.14"),
         .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.0")
     ],
     targets: [
